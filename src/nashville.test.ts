@@ -3,6 +3,8 @@ import {
   getChordRoot,
   parseNashvilleNumber,
   nashvilleToChord,
+  isNashvilleNumber,
+  convertChordWithSlashes,
 } from "./nashville";
 
 describe("Nashville Number System", () => {
@@ -121,24 +123,24 @@ describe("Nashville Number System", () => {
   });
 
   describe("nashvilleToChord", () => {
-    it("should convert Nashville numbers in C major", () => {
+    it("should convert Nashville numbers in C major (all as major by default)", () => {
       expect(nashvilleToChord("1", "C")).toBe("C");
-      expect(nashvilleToChord("2", "C")).toBe("Dm");
-      expect(nashvilleToChord("3", "C")).toBe("Em");
+      expect(nashvilleToChord("2", "C")).toBe("D");
+      expect(nashvilleToChord("3", "C")).toBe("E");
       expect(nashvilleToChord("4", "C")).toBe("F");
       expect(nashvilleToChord("5", "C")).toBe("G");
-      expect(nashvilleToChord("6", "C")).toBe("Am");
-      expect(nashvilleToChord("7", "C")).toBe("Bdim");
+      expect(nashvilleToChord("6", "C")).toBe("A");
+      expect(nashvilleToChord("7", "C")).toBe("B");
     });
 
-    it("should convert Nashville numbers in G major", () => {
+    it("should convert Nashville numbers in G major (all as major by default)", () => {
       expect(nashvilleToChord("1", "G")).toBe("G");
-      expect(nashvilleToChord("2", "G")).toBe("Am");
-      expect(nashvilleToChord("3", "G")).toBe("Bm");
+      expect(nashvilleToChord("2", "G")).toBe("A");
+      expect(nashvilleToChord("3", "G")).toBe("B");
       expect(nashvilleToChord("4", "G")).toBe("C");
       expect(nashvilleToChord("5", "G")).toBe("D");
-      expect(nashvilleToChord("6", "G")).toBe("Em");
-      expect(nashvilleToChord("7", "G")).toBe("F#dim");
+      expect(nashvilleToChord("6", "G")).toBe("E");
+      expect(nashvilleToChord("7", "G")).toBe("F#");
     });
 
     it("should convert Nashville numbers in D major", () => {
@@ -161,17 +163,17 @@ describe("Nashville Number System", () => {
     });
 
     it("should apply accidentals", () => {
-      // b3 in C major: E -> Eb
-      expect(nashvilleToChord("b3", "C")).toBe("Ebm");
-      // #4 in C major: F -> F#
+      // b3 in C major: E -> Eb (major, since 3 defaults to major)
+      expect(nashvilleToChord("b3", "C")).toBe("Eb");
+      // #4 in C major: F -> F# (major)
       expect(nashvilleToChord("#4", "C")).toBe("F#");
-      // b7 in C major: B -> Bb
-      expect(nashvilleToChord("b7", "C")).toBe("Bbdim");
+      // b7 in C major: B -> Bb (major, not diminished)
+      expect(nashvilleToChord("b7", "C")).toBe("Bb");
     });
 
     it("should apply accidentals in sharp keys", () => {
-      // b3 in G major: B -> Bb
-      expect(nashvilleToChord("b3", "G")).toBe("Bbm");
+      // b3 in G major: B -> Bb (major)
+      expect(nashvilleToChord("b3", "G")).toBe("Bb");
       // #5 in G major: D -> D#
       expect(nashvilleToChord("#5", "G")).toBe("D#");
     });
@@ -190,7 +192,61 @@ describe("Nashville Number System", () => {
       // Test that accidentals work consistently across all degrees
       expect(nashvilleToChord("b1", "C")).toBe("B");
       expect(nashvilleToChord("#1", "C")).toBe("C#");
-      expect(nashvilleToChord("b6", "C")).toBe("Abm");
+      expect(nashvilleToChord("b6", "C")).toBe("Ab");
+    });
+  });
+
+  describe("isNashvilleNumber", () => {
+    it("should recognize Nashville numbers", () => {
+      expect(isNashvilleNumber("1")).toBe(true);
+      expect(isNashvilleNumber("5")).toBe(true);
+      expect(isNashvilleNumber("2m")).toBe(true);
+      expect(isNashvilleNumber("7dim")).toBe(true);
+      expect(isNashvilleNumber("b3")).toBe(true);
+      expect(isNashvilleNumber("#4m7")).toBe(true);
+    });
+
+    it("should reject non-Nashville strings", () => {
+      expect(isNashvilleNumber("C")).toBe(false);
+      expect(isNashvilleNumber("Am")).toBe(false);
+      expect(isNashvilleNumber("Gm")).toBe(false);
+      expect(isNashvilleNumber("|")).toBe(false);
+      expect(isNashvilleNumber("8")).toBe(false);
+      expect(isNashvilleNumber("")).toBe(false);
+    });
+  });
+
+  describe("convertChordWithSlashes", () => {
+    it("should convert simple Nashville chords", () => {
+      expect(convertChordWithSlashes("1", "C")).toBe("C");
+      expect(convertChordWithSlashes("5", "G")).toBe("D");
+    });
+
+    it("should convert slash chords with both parts Nashville", () => {
+      expect(convertChordWithSlashes("1/5", "C")).toBe("C/G");
+      expect(convertChordWithSlashes("4/1", "G")).toBe("C/G");
+    });
+
+    it("should handle mixed Nashville and regular chords", () => {
+      expect(convertChordWithSlashes("1/Gm", "C")).toBe("C/Gm");
+      expect(convertChordWithSlashes("C/5", "G")).toBe("C/D");
+      expect(convertChordWithSlashes("1/Bb/5", "C")).toBe("C/Bb/G");
+    });
+
+    it("should keep non-Nashville chords unchanged", () => {
+      expect(convertChordWithSlashes("C", "G")).toBe("C");
+      expect(convertChordWithSlashes("|", "C")).toBe("|");
+      expect(convertChordWithSlashes("Gm/A", "C")).toBe("Gm/A");
+    });
+
+    it("should handle polychords with Nashville numbers", () => {
+      expect(convertChordWithSlashes("1/5m/6", "C")).toBe("C/Gm/A");
+      expect(convertChordWithSlashes("b3/5/7", "C")).toBe("Eb/G/B");
+    });
+
+    it("should handle accidentals in slash chords", () => {
+      expect(convertChordWithSlashes("1/#4", "C")).toBe("C/F#");
+      expect(convertChordWithSlashes("b3/5m", "C")).toBe("Eb/Gm");
     });
   });
 
@@ -205,13 +261,13 @@ describe("Nashville Number System", () => {
     it("should convert vi-IV-I-V (6 4 1 5) in C major", () => {
       const progression = ["6", "4", "1", "5"];
       const chords = progression.map((num) => nashvilleToChord(num, "C"));
-      expect(chords).toEqual(["Am", "F", "C", "G"]);
+      expect(chords).toEqual(["A", "F", "C", "G"]);
     });
 
-    it("should convert with mixed qualities", () => {
+    it("should convert with mixed qualities - using explicit minor", () => {
       const progression = ["1", "6m", "4maj7", "5"];
       const chords = progression.map((num) => nashvilleToChord(num, "C"));
-      // Note: 6 is naturally minor, so 6m redundantly makes it minor
+      // 6 by itself is major A, but 6m is minor Am
       expect(chords).toEqual(["C", "Am", "Fmaj7", "G"]);
     });
   });

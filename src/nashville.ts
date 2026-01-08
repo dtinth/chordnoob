@@ -58,17 +58,6 @@ const FLAT_KEYS = new Set(["F", "Bb", "Eb", "Ab", "Db", "Gb"]);
 // Major scale intervals (in semitones from root)
 const MAJOR_SCALE_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
 
-// Scale degree default qualities (for no suffix)
-const DEFAULT_QUALITIES: Record<number, string> = {
-  1: "", // major
-  2: "m", // minor
-  3: "m", // minor
-  4: "", // major
-  5: "", // major
-  6: "m", // minor
-  7: "dim", // diminished
-};
-
 /**
  * Get the chord root note for a given scale degree in a key.
  * @param key - The root note of the key (e.g., "G", "C", "D")
@@ -161,10 +150,13 @@ function applyAccidental(note: string, accidental: string): Note {
 }
 
 /**
- * Convert a Nashville number to a chord symbol.
- * @param nashvilleNumber - The number part (e.g., "2m", "7dim", "1maj7", "b3", "#4")
+ * Convert a single Nashville number to a chord symbol.
+ * Per Nashville Number System: "A number by itself (without any other notation)
+ * is assumed to represent a major chord."
+ *
+ * @param nashvilleNumber - The number part (e.g., "1", "2m", "7dim", "1maj7", "b3", "#4")
  * @param key - The key the song is in
- * @returns The chord symbol (e.g., "Am", "F#dim", "Cmaj7", "Ebm", "F#m")
+ * @returns The chord symbol (e.g., "C", "Am", "F#dim", "Cmaj7", "Eb", "F#")
  */
 export function nashvilleToChord(nashvilleNumber: string, key: Note): string {
   const parsed = parseNashvilleNumber(nashvilleNumber);
@@ -178,12 +170,41 @@ export function nashvilleToChord(nashvilleNumber: string, key: Note): string {
     root = applyAccidental(root, accidental);
   }
 
-  // If a quality is specified, use it as-is
-  if (quality) {
-    return root + quality;
-  }
+  // If a quality is specified, use it as-is; otherwise default to major
+  return root + quality;
+}
 
-  // Otherwise use default quality for this scale degree
-  const defaultQuality = DEFAULT_QUALITIES[degree] || "";
-  return root + defaultQuality;
+/**
+ * Check if a string looks like a Nashville number.
+ * Pattern: optional accidental [b#] followed by scale degree [1-7], then optional quality
+ */
+export function isNashvilleNumber(str: string): boolean {
+  return /^[b#]?[1-7]/.test(str);
+}
+
+/**
+ * Convert a chord string that may contain slash chords or polychords.
+ * Each part separated by / is checked: if it's Nashville, it's converted; otherwise kept as-is.
+ * Examples:
+ *   "1" -> "C" (in key C)
+ *   "1/5" -> "C/G" (in key C)
+ *   "1/Gm" -> "C/Gm" (mixed notation)
+ *   "|" -> "|" (not Nashville, unchanged)
+ *
+ * @param chordString - Chord string with possible slashes
+ * @param key - The key the song is in
+ * @returns Converted chord string
+ */
+export function convertChordWithSlashes(chordString: string, key: Note): string {
+  return chordString
+    .split("/")
+    .map((part) => {
+      // Only try to convert if it looks like Nashville
+      if (isNashvilleNumber(part)) {
+        return nashvilleToChord(part, key);
+      }
+      // Otherwise keep it as-is
+      return part;
+    })
+    .join("/");
 }
