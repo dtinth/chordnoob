@@ -45,22 +45,37 @@ describe("Nashville Number System", () => {
 
     it("should throw on invalid keys", () => {
       expect(() => getChordRoot("H" as any, 1)).toThrow();
+      expect(() => getChordRoot("Q" as any, 5)).toThrow();
     });
   });
 
   describe("parseNashvilleNumber", () => {
     it("should parse simple numbers", () => {
-      expect(parseNashvilleNumber("1")).toEqual({ degree: 1, quality: "" });
-      expect(parseNashvilleNumber("5")).toEqual({ degree: 5, quality: "" });
+      expect(parseNashvilleNumber("1")).toEqual({
+        accidental: "",
+        degree: 1,
+        quality: "",
+      });
+      expect(parseNashvilleNumber("5")).toEqual({
+        accidental: "",
+        degree: 5,
+        quality: "",
+      });
     });
 
     it("should parse numbers with qualities", () => {
-      expect(parseNashvilleNumber("2m")).toEqual({ degree: 2, quality: "m" });
+      expect(parseNashvilleNumber("2m")).toEqual({
+        accidental: "",
+        degree: 2,
+        quality: "m",
+      });
       expect(parseNashvilleNumber("7dim")).toEqual({
+        accidental: "",
         degree: 7,
         quality: "dim",
       });
       expect(parseNashvilleNumber("1maj7")).toEqual({
+        accidental: "",
         degree: 1,
         quality: "maj7",
       });
@@ -68,12 +83,32 @@ describe("Nashville Number System", () => {
 
     it("should handle complex qualities", () => {
       expect(parseNashvilleNumber("4sus2")).toEqual({
+        accidental: "",
         degree: 4,
         quality: "sus2",
       });
       expect(parseNashvilleNumber("5b9")).toEqual({
+        accidental: "",
         degree: 5,
         quality: "b9",
+      });
+    });
+
+    it("should parse accidentals before degree", () => {
+      expect(parseNashvilleNumber("b3")).toEqual({
+        accidental: "b",
+        degree: 3,
+        quality: "",
+      });
+      expect(parseNashvilleNumber("#4")).toEqual({
+        accidental: "#",
+        degree: 4,
+        quality: "",
+      });
+      expect(parseNashvilleNumber("b2m")).toEqual({
+        accidental: "b",
+        degree: 2,
+        quality: "m",
       });
     });
 
@@ -125,9 +160,37 @@ describe("Nashville Number System", () => {
       expect(nashvilleToChord("5", "Bb")).toBe("F");
     });
 
+    it("should apply accidentals", () => {
+      // b3 in C major: E -> Eb
+      expect(nashvilleToChord("b3", "C")).toBe("Ebm");
+      // #4 in C major: F -> F#
+      expect(nashvilleToChord("#4", "C")).toBe("F#");
+      // b7 in C major: B -> Bb
+      expect(nashvilleToChord("b7", "C")).toBe("Bbdim");
+    });
+
+    it("should apply accidentals in sharp keys", () => {
+      // b3 in G major: B -> Bb
+      expect(nashvilleToChord("b3", "G")).toBe("Bbm");
+      // #5 in G major: D -> D#
+      expect(nashvilleToChord("#5", "G")).toBe("D#");
+    });
+
+    it("should apply accidentals with qualities", () => {
+      expect(nashvilleToChord("b3m7", "C")).toBe("Ebm7");
+      expect(nashvilleToChord("#4maj7", "C")).toBe("F#maj7");
+    });
+
     it("should throw on invalid Nashville numbers", () => {
       expect(() => nashvilleToChord("8", "C")).toThrow();
       expect(() => nashvilleToChord("0", "C")).toThrow();
+    });
+
+    it("should handle edge case of accidental on valid notes", () => {
+      // Test that accidentals work consistently across all degrees
+      expect(nashvilleToChord("b1", "C")).toBe("B");
+      expect(nashvilleToChord("#1", "C")).toBe("C#");
+      expect(nashvilleToChord("b6", "C")).toBe("Abm");
     });
   });
 

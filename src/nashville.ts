@@ -101,32 +101,82 @@ export function getChordRoot(key: Note, degree: number): Note {
 
 /**
  * Validate and normalize a Nashville number string.
- * Examples: "1", "2m", "7dim", "1maj7", "4sus2"
+ * Examples: "1", "2m", "7dim", "1maj7", "4sus2", "b3", "#4"
  */
 export function parseNashvilleNumber(
   input: string
-): { degree: number; quality: string } | null {
-  const match = input.match(/^([1-7])(.*)$/);
+): { accidental: string; degree: number; quality: string } | null {
+  const match = input.match(/^([b#]?)([1-7])(.*)$/);
   if (!match) return null;
 
-  const degree = parseInt(match[1], 10);
-  const quality = match[2];
+  const accidental = match[1];
+  const degree = parseInt(match[2], 10);
+  const quality = match[3];
 
-  return { degree, quality };
+  return { accidental, degree, quality };
+}
+
+/**
+ * Reverse map: sharp notes to their flat equivalents
+ */
+const SHARP_TO_FLAT: Record<string, Note> = {
+  "C#": "Db",
+  "D#": "Eb",
+  "F#": "Gb",
+  "G#": "Ab",
+  "A#": "Bb",
+};
+
+/**
+ * Apply accidental shift to a note.
+ * @param note - The note to shift (e.g., "C", "F#")
+ * @param accidental - "#" for sharp, "b" for flat
+ * @returns The shifted note
+ */
+function applyAccidental(note: string, accidental: string): Note {
+  if (!accidental) return note as Note;
+
+  const noteIndex = CHROMATIC.indexOf(note);
+  if (noteIndex === -1) {
+    // Try converting flat to sharp equivalent
+    const sharpEquiv = FLAT_TO_SHARP[note];
+    if (sharpEquiv) {
+      return applyAccidental(sharpEquiv, accidental);
+    }
+    throw new Error(`Cannot apply accidental to unknown note: ${note}`);
+  }
+
+  if (accidental === "#") {
+    // Move up a semitone - prefer sharp spelling
+    const result = CHROMATIC[(noteIndex + 1) % 12];
+    return result as Note;
+  } else if (accidental === "b") {
+    // Move down a semitone - prefer flat spelling
+    const result = CHROMATIC[(noteIndex - 1 + 12) % 12];
+    // Convert sharp result to flat if available
+    return (SHARP_TO_FLAT[result] || result) as Note;
+  }
+
+  return note as Note;
 }
 
 /**
  * Convert a Nashville number to a chord symbol.
- * @param nashvilleNumber - The number part (e.g., "2m", "7dim", "1maj7")
+ * @param nashvilleNumber - The number part (e.g., "2m", "7dim", "1maj7", "b3", "#4")
  * @param key - The key the song is in
- * @returns The chord symbol (e.g., "Am", "F#dim", "Cmaj7")
+ * @returns The chord symbol (e.g., "Am", "F#dim", "Cmaj7", "Ebm", "F#m")
  */
 export function nashvilleToChord(nashvilleNumber: string, key: Note): string {
   const parsed = parseNashvilleNumber(nashvilleNumber);
   if (!parsed) throw new Error(`Invalid Nashville number: ${nashvilleNumber}`);
 
-  const { degree, quality } = parsed;
-  const root = getChordRoot(key, degree);
+  const { accidental, degree, quality } = parsed;
+  let root = getChordRoot(key, degree);
+
+  // Apply accidental if specified
+  if (accidental) {
+    root = applyAccidental(root, accidental);
+  }
 
   // If a quality is specified, use it as-is
   if (quality) {
