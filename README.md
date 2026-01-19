@@ -1,6 +1,61 @@
 # ChordNoob
 
-A lightweight ChordPro preprocessor that adds **Nashville Number System** support and **Chord Queues** to your chord charts.
+A lightweight **[ChordPro](https://www.chordpro.org/) preprocessor** that with these features:
+
+- **Nashville Number System:** Write chords [using scale degrees instead of absolute note names](https://en.wikipedia.org/wiki/Nashville_Number_System), so you don’t have to transpose the chords in your head while transcribing. For example, if you hear a two-five-one, you can transcribe as [2m] [5] [1] regardless of the song's key.
+- **Chord Queues:** Separate the chord notation from the lyrics.
+
+## Example
+
+```
+{key:Eb}
+{q:[1] [6m] [5] [57] [1] [1maj7] [4] [1]}
+_Holy, _holy, _ho_-_ly!_
+_Lord God Al_mighty
+{q:[5/7] [1] [5/7] [6m] [2/6] [5/7] [4/1] [5/2] [27] [5] [57]}
+_Early _in _the _mor_-_ning
+_Our _song shall _rise to _Thee_
+{q:[1] [6m] [5] [57] [1] [1maj7] [4] [1]}
+_Holy, _holy, _ho_-_ly!_
+_Merciful and _mighty
+{q:[6m] [1/3] [17/3] [4] [1] [17] [2m] [57] [1]}
+_God _in _three _per_sons_
+_Blessed _Trini_ty!
+```
+
+**Nashville number processing:** The numbers in the chord notations enclosed in `[` square brackets `]` will be treated as a scale degree in the current `{key:}`. This results in chords with absolute note names.
+
+```
+{key:Eb}
+{q:[Eb] [Cm] [Bb] [Bb7] [Eb] [Ebmaj7] [Ab] [Eb]}
+_Holy, _holy, _ho_-_ly!_
+_Lord God Al_mighty
+{q:[Bb/D] [Eb] [Bb/D] [Cm] [F/C] [Bb/D] [Ab/Eb] [Bb/F] [F7] [Bb] [Bb7]}
+_Early _in _the _mor_-_ning
+_Our _song shall _rise to _Thee_
+{q:[Eb] [Cm] [Bb] [Bb7] [Eb] [Ebmaj7] [Ab] [Eb]}
+_Holy, _holy, _ho_-_ly!_
+_Merciful and _mighty
+{q:[Cm] [Eb/G] [Eb7/G] [Ab] [Eb] [Eb7] [Fm] [Bb7] [Eb]}
+_God _in _three _per_sons_
+_Blessed _Trini_ty!
+```
+
+**Queue processing:** The `{q:}` directive queues up chords to be replaced in each successive `_`. That is, each chord in the `{q:}` directive will be matched up and substituted into the subsequent `_` tokens found later. This results in a standard ChordPro file that looks like this:
+
+```
+{key: Eb}
+[Eb]Holy, [Cm]holy, [Bb]ho[Bb7]-[Eb]ly![Ebmaj7]
+[Ab]Lord God Al[Eb]mighty
+[Bb/D]Early [Eb]in [Bb/D]the [Cm]mor[F/C]-[Bb/D]ning
+[Ab/Eb]Our [Bb/F]song shall [F7]rise to [Bb]Thee[Bb7]
+[Eb]Holy, [Cm]holy, [Bb]ho[Bb7]-[Eb]ly![Ebmaj7]
+[Ab]Merciful and [Eb]mighty
+[Cm]God [Eb/G]in [Eb7/G]three [Ab]per[Eb]sons[Eb7]
+[Fm]Blessed [Bb7]Trini[Eb]ty!
+```
+
+Both features are independent of each other, they work well together, so you can pick and choose the features you want.
 
 ## Features
 
